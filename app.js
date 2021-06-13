@@ -20,6 +20,10 @@ const rl = readline.createInterface({
 
 const BASE_URL = "https://www.googleapis.com/books/v1/";
 
+const q1 = "HELLO!! TYPE A SEARCH TERM FOR A BOOK: ";
+const q2 = "\nTO ADD TO YOUR READING LIST, ENTER BOOK ID: ";
+const readList = "reading-list.txt";
+
 /** read reading-list.txt and print it out. */
 
 const readingList = (path) => {
@@ -32,3 +36,40 @@ const readingList = (path) => {
 		}
 	});
 };
+
+/** handle output: write to file if out given. */
+
+const handleOutput = (text, out) => {
+	if (out) {
+		fs.writeFile(readList, `\n${text}`, { encoding: "utf8", flag: "a" }, (err) => {
+			if (err) {
+				console.log(err);
+				process.exit(1);
+			}
+		});
+	} else {
+		console.log(text);
+	}
+};
+
+/** questions for the user */
+
+rl.question(q1, async (term) => {
+	axios
+		.get(`${BASE_URL}volumes?&q=${term}`)
+		.then((res) => {
+			let books = res.data.items.slice(0, 5);
+			let filteredBookInfo = books.map(({ id, volumeInfo }) => {
+				let author = volumeInfo["authors"] === undefined ? "N/A" : volumeInfo["authors"][0];
+				let title = volumeInfo["title"] || "N/A";
+				let publisher = volumeInfo["publisher"] || "N/A";
+				console.log(
+					`ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`
+				);
+				return `ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`;
+			});
+
+			return filteredBookInfo;
+		})
+		.catch((err) => console.log("rejected!", err));
+});
