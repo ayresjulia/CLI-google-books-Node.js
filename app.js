@@ -73,11 +73,13 @@ const getReadingList = () => {
 /** questions for the user */
 
 rl.question(q1, async (term) => {
+	term.replace(/ /g, "+"); // for multi-word query string
 	axios
 		.get(`${BASE_URL}volumes?&q=${term}`)
 		.then((res) => {
 			let books = res.data.items.slice(0, 5);
 			let filteredBookInfo = books.map(({ id, volumeInfo }) => {
+				// safety in case info is missing from api
 				let author = volumeInfo["authors"] === undefined ? "N/A" : volumeInfo["authors"][0];
 				let title = volumeInfo["title"] || "N/A";
 				let publisher = volumeInfo["publisher"] || "N/A";
@@ -91,6 +93,8 @@ rl.question(q1, async (term) => {
 		})
 		.then((books) => {
 			rl.question(q2, (id) => {
+				// find target book by id and get a string of required values to save to Reading List
+				let bookStr = `ID: ${id},`;
 				let targetBookInfo = books.find((book) => book.includes(bookStr));
 
 				if (targetBookInfo) {
