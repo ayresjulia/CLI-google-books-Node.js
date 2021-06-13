@@ -23,6 +23,8 @@ const BASE_URL = "https://www.googleapis.com/books/v1/";
 const q1 = "HELLO!! TYPE A SEARCH TERM FOR A BOOK: ";
 const q2 = "\nTO ADD TO YOUR READING LIST, ENTER BOOK ID: ";
 const readList = "reading-list.txt";
+const idError = "***OOPS. BOOK ID IS INVALID.***";
+const finalMsg = "\nBYE BYE!!!";
 
 /** read reading-list.txt and print it out. */
 
@@ -71,5 +73,22 @@ rl.question(q1, async (term) => {
 
 			return filteredBookInfo;
 		})
+		.then((books) => {
+			rl.question(q2, (id) => {
+				let targetBookInfo = books.find((book) => book.includes(bookStr));
+
+				if (targetBookInfo) {
+					handleOutput(targetBookInfo, readList);
+					console.log(`Book with ID: ${id} was successfully saved`);
+				} else {
+					console.error(idError);
+				}
+			});
+		})
 		.catch((err) => console.log("rejected!", err));
+});
+
+rl.on("close", () => {
+	console.log(finalMsg);
+	process.exit(0);
 });
