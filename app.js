@@ -22,6 +22,7 @@ const BASE_URL = "https://www.googleapis.com/books/v1/";
 
 const q1 = "HELLO!! TYPE A SEARCH TERM FOR A BOOK: ";
 const q2 = "\nTO ADD TO YOUR READING LIST, ENTER BOOK ID: ";
+const q3 = "\nRETRIEVE YOUR READING LIST? y/n : ";
 const readList = "reading-list.txt";
 const idError = "***OOPS. BOOK ID IS INVALID.***";
 const finalMsg = "\nBYE BYE!!!";
@@ -54,6 +55,21 @@ const handleOutput = (text, out) => {
 	}
 };
 
+/** retrieve reading list question and closing message. */
+
+const getReadingList = () => {
+	rl.question(q3, async (answer) => {
+		if (answer === "y") {
+			readingList(readList);
+			setTimeout(() => {
+				rl.close();
+			}, 2000);
+		} else {
+			rl.close();
+		}
+	});
+};
+
 /** questions for the user */
 
 rl.question(q1, async (term) => {
@@ -83,6 +99,7 @@ rl.question(q1, async (term) => {
 				} else {
 					console.error(idError);
 				}
+				getReadingList();
 			});
 		})
 		.catch((err) => console.log("rejected!", err));
