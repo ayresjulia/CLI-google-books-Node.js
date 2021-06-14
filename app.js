@@ -113,3 +113,5 @@ rl.on("close", () => {
 	console.log(finalMsg);
 	process.exit(0);
 });
+
+module.exports = { readingList };
