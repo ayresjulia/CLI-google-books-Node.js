@@ -51,3 +51,22 @@ $npm test
 - Libraries/modules: Axios | Readline | fs | process | sinon
 
 - Testing: Jest - unittest
+
+## :battery: Work Process - strengths
+
+- Node.js is a very-well documented platform and makes writing the application a breeze!
+  
+- File system and Readline are both amazing modules that allow minimal code for what seem to be complex actions.
+  
+- Documentation is very important in any code, and I have added descriptions to every function in the code.
+
+- Mock tests with Jest are super helpful here, they have helped me to mock file system in order to test reading the file.
+  
+## :microscope: Work Process - opportunities
+
+- The app could definitely benefit from more testing. Testing was the hardest part as some code is nested while working with readline.
+
+- Working in readline was my first, and I have learned a lot! I am planning to research a proper way to test readline code in the future.
+
+- The app has only few features for the user, and can definitely be expanded more.
+  
