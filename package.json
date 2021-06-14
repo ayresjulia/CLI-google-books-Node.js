@@ -1,14 +1,19 @@
 {
-  "name": "google-books-api",
-  "version": "1.0.0",
-  "description": "8th-light-assessment",
-  "main": "app.js",
-  "scripts": {
-    "test": "\"echo \\\"Error: no test specified\\\" && exit 1\""
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "axios": "^0.21.1"
-  }
+	"name": "google-books-api",
+	"version": "1.0.0",
+	"description": "8th-light-assessment",
+	"main": "app.js",
+	"scripts": {
+		"test": "\"echo \\\"Error: no test specified\\\" && exit 1\""
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"axios": "^0.21.1",
+		"mock-fs": "^5.0.0",
+		"sinon": "^11.1.1"
+	},
+	"devDependencies": {
+		"jest": "^23.6.0"
+	}
 }

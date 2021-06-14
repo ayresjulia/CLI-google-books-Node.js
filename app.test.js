@@ -1,4 +1,4 @@
-const { readingList } = require("./app");
+const { readingList, fetchData } = require("./app");
 const sinon = require("sinon");
 const fs = require("fs");
 

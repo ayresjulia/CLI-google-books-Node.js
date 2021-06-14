@@ -13,17 +13,24 @@ const axios = require("axios");
 const fs = require("fs");
 const process = require("process");
 
+/** readline interface setup for reading input stream in console */
+
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout
 });
 
+/** Google Books Api base url */
+
 const BASE_URL = "https://www.googleapis.com/books/v1/";
+
+/** user text throughout the app */
 
 const q1 = "HELLO!! TYPE A SEARCH TERM FOR A BOOK: ";
 const q2 = "\nTO ADD TO YOUR READING LIST, ENTER BOOK ID: ";
 const q3 = "\nRETRIEVE YOUR READING LIST? y/n : ";
 const readList = "reading-list.txt";
+const bookNameError = "***OOPS. NO BOOKS AVAILABLE WITH THAT NAME.***";
 const idError = "***OOPS. BOOK ID IS INVALID.***";
 const finalMsg = "\nBYE BYE!!!";
 
@@ -70,48 +77,61 @@ const getReadingList = () => {
 	});
 };
 
+/** fetching data from Google Books Api w error handling */
+
+const fetchData = async (query) => {
+	try {
+		let res = await axios.get(`${BASE_URL}volumes?&q=${query}`);
+		if (res.data.totalItems === 0) {
+			console.error(bookNameError);
+			rl.close();
+		}
+		return res;
+	} catch (err) {
+		console.log(err);
+	}
+};
+
 /** questions for the user */
 
 rl.question(q1, async (term) => {
 	term.replace(/ /g, "+"); // for multi-word query string
-	axios
-		.get(`${BASE_URL}volumes?&q=${term}`)
-		.then((res) => {
-			let books = res.data.items.slice(0, 5);
-			let filteredBookInfo = books.map(({ id, volumeInfo }) => {
-				// safety in case info is missing from api
-				let author = volumeInfo["authors"] === undefined ? "N/A" : volumeInfo["authors"][0];
-				let title = volumeInfo["title"] || "N/A";
-				let publisher = volumeInfo["publisher"] || "N/A";
-				console.log(
-					`ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`
-				);
-				return `ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`;
-			});
+	let books = await fetchData(term);
 
-			return filteredBookInfo;
-		})
-		.then((books) => {
-			rl.question(q2, (id) => {
-				// find target book by id and get a string of required values to save to Reading List
-				let bookStr = `ID: ${id},`;
-				let targetBookInfo = books.find((book) => book.includes(bookStr));
+	if (books) {
+		let booksNum = res.data.items.slice(0, 5);
+		let filteredBookInfo = booksNum.map(({ id, volumeInfo }) => {
+			// safety in case info is missing from api
+			let author = volumeInfo["authors"] === undefined ? "N/A" : volumeInfo["authors"][0];
+			let title = volumeInfo["title"] || "N/A";
+			let publisher = volumeInfo["publisher"] || "N/A";
+			console.log(
+				`ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`
+			);
+			return `ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`;
+		});
 
-				if (targetBookInfo) {
-					handleOutput(targetBookInfo, readList);
-					console.log(`Book with ID: ${id} was successfully saved`);
-				} else {
-					console.error(idError);
-				}
-				getReadingList();
-			});
-		})
-		.catch((err) => console.log("rejected!", err));
+		rl.question(q2, (id) => {
+			// find target book by id and get a string of required values to save to Reading List
+			let bookStr = `ID: ${id},`;
+			let targetBookInfo = filteredBookInfo.find((book) => book.includes(bookStr));
+
+			if (targetBookInfo) {
+				handleOutput(targetBookInfo, readList);
+				console.log(`Book with ID: ${id} was successfully saved`);
+			} else {
+				console.error(idError);
+			}
+			getReadingList();
+		});
+	}
 });
+
+/** closing readline stream and exiting the app */
 
 rl.on("close", () => {
 	console.log(finalMsg);
 	process.exit(0);
 });
 
-module.exports = { readingList };
+module.exports = { readingList, fetchData };
