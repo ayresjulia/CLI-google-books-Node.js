@@ -65,7 +65,7 @@ const handleOutput = (text, out) => {
 /** retrieve reading list question and closing message. */
 
 const getReadingList = () => {
-	rl.question(q3, async (answer) => {
+	rl.question(q3, (answer) => {
 		if (answer === "y") {
 			readingList(readList);
 			setTimeout(() => {
@@ -99,7 +99,7 @@ rl.question(q1, async (term) => {
 	let books = await fetchData(term);
 
 	if (books) {
-		let booksNum = res.data.items.slice(0, 5);
+		let booksNum = books.data.items.slice(0, 5);
 		let filteredBookInfo = booksNum.map(({ id, volumeInfo }) => {
 			// safety in case info is missing from api
 			let author = volumeInfo["authors"] === undefined ? "N/A" : volumeInfo["authors"][0];
@@ -128,10 +128,11 @@ rl.question(q1, async (term) => {
 });
 
 /** closing readline stream and exiting the app */
-
-rl.on("close", () => {
-	console.log(finalMsg);
-	process.exit(0);
-});
+const exitApp = async () => {
+	await rl.on("close", () => {
+		console.log(finalMsg);
+		process.exit(0);
+	});
+};
 
 module.exports = { readingList, fetchData };
