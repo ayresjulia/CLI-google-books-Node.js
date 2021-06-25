@@ -10,7 +10,7 @@ Command Line Application made in Node.js which allows user  to create Book Readi
 
 - each book in the list includes id, author, title, and publishing company
   
-- user is able to save a book to a local “Reading List”
+- user is able to save a book to a local “Reading List”, as long as the same book hasn't been saved yet previously
   
 - view a “Reading List” with all the books the user has selected
 
