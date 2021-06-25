@@ -26,13 +26,16 @@ const BASE_URL = "https://www.googleapis.com/books/v1/";
 
 /** user text throughout the app */
 
-const q1 = "HELLO!! TYPE A SEARCH TERM FOR A BOOK: ";
+const q1 = "\nPLEASE, TYPE A SEARCH TERM FOR A BOOK: ";
 const q2 = "\nTO ADD TO YOUR READING LIST, ENTER BOOK ID: ";
 const q3 = "\nRETRIEVE YOUR READING LIST? y/n : ";
 const readList = "reading-list.txt";
 const bookNameError = "***OOPS. NO BOOKS AVAILABLE WITH THAT NAME.***";
 const idError = "***OOPS. BOOK ID IS INVALID.***";
 const finalMsg = "\nBYE BYE!!!";
+const noInput = "***OOPS, WE DO NOT RECOGNIZE YOUR SEARCH TERM. PLEASE, TRY AGAIN.***";
+const bookExists = "***OOPS, THIS BOOK IS ALREADY IN YOUR READING LIST.***";
+const newBook = "YOUR BOOK WAS SUCCESSFULLY SAVED.";
 
 /** read reading-list.txt and print it out. */
 
@@ -50,16 +53,24 @@ const readingList = (path) => {
 /** handle output: write to file if out given. */
 
 const handleOutput = (text, out) => {
-	if (out) {
-		fs.writeFile(readList, `\n${text}`, { encoding: "utf8", flag: "a" }, (err) => {
-			if (err) {
-				console.log(err);
-				process.exit(1);
-			}
-		});
-	} else {
-		console.log(text);
-	}
+	fs.readFile(readList, "utf8", (err, data) => {
+		if (err) console.error(`Error reading ${path}: ${err}`);
+		// check for existing book in reading list, proceed if doesn't exist
+		if (!data.includes(text)) {
+			fs.writeFile(out, `\n${text}`, { encoding: "utf8", flag: "a" }, (err) => {
+				if (err) {
+					console.log(err);
+					process.exit(1);
+				} else {
+					console.log(newBook);
+					getReadingList();
+				}
+			});
+		} else {
+			console.error(bookExists);
+			getReadingList();
+		}
+	});
 };
 
 /** retrieve reading list question and closing message. */
@@ -72,7 +83,8 @@ const getReadingList = () => {
 				rl.close();
 			}, 2000);
 		} else {
-			rl.close();
+			// if user doesn't want to retrieve readling list, app restarts without exiting
+			main();
 		}
 	});
 };
@@ -84,55 +96,73 @@ const fetchData = async (query) => {
 		let res = await axios.get(`${BASE_URL}volumes?&q=${query}`);
 		if (res.data.totalItems === 0) {
 			console.error(bookNameError);
-			rl.close();
+			main();
+		} else {
+			return res;
 		}
-		return res;
 	} catch (err) {
-		console.log(err);
+		// instead of a long err data, it will show status code and text
+		console.log("ERROR: ", err.response.status, err.response.statusText);
 	}
 };
 
 /** questions for the user */
 
-rl.question(q1, async (term) => {
-	term.replace(/ /g, "+"); // for multi-word query string
-	let books = await fetchData(term);
+const main = () => {
+	rl.question(q1, async (term) => {
+		let books = await fetchData(term);
+		// added peronalized message for empty query
+		if (term === "" || term === " ") {
+			console.error(noInput);
+			main();
+		}
 
-	if (books) {
-		let booksNum = books.data.items.slice(0, 5);
-		let filteredBookInfo = booksNum.map(({ id, volumeInfo }) => {
-			// safety in case info is missing from api
-			let author = volumeInfo["authors"] === undefined ? "N/A" : volumeInfo["authors"][0];
-			let title = volumeInfo["title"] || "N/A";
-			let publisher = volumeInfo["publisher"] || "N/A";
-			console.log(
-				`ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`
-			);
-			return `ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`;
-		});
+		term.replace(/ /g, "+"); // for multi-word query string
 
-		rl.question(q2, (id) => {
-			// find target book by id and get a string of required values to save to Reading List
-			let bookStr = `ID: ${id},`;
-			let targetBookInfo = filteredBookInfo.find((book) => book.includes(bookStr));
+		// if user adds random characters and gets zero books response from API
+		if (books) {
+			if (books.data.totalItems !== 0) {
+				let booksNum = books.data.items.slice(0, 5);
+				let filteredBookInfo = booksNum.map(({ id, volumeInfo }) => {
+					// safety in case info is missing from api
+					let author =
+						volumeInfo["authors"] === undefined ? "N/A" : volumeInfo["authors"][0];
+					let title = volumeInfo["title"] || "N/A";
+					let publisher = volumeInfo["publisher"] || "N/A";
+					console.log(
+						`ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`
+					);
+					return `ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`;
+				});
 
-			if (targetBookInfo) {
-				handleOutput(targetBookInfo, readList);
-				console.log(`Book with ID: ${id} was successfully saved`);
+				rl.question(q2, (id) => {
+					// find target book by id and get a string of required values to save to Reading List
+					let bookStr = `ID: ${id},`;
+					let targetBookInfo = filteredBookInfo.find((book) => book.includes(bookStr));
+
+					if (targetBookInfo) {
+						handleOutput(targetBookInfo, readList);
+					} else {
+						console.error(idError);
+						main();
+					}
+				});
 			} else {
-				console.error(idError);
+				// if user search term resulted in zero books, app will show custom error msg and exit
+				console.error(finalMsg);
+				rl.close();
 			}
-			getReadingList();
-		});
-	}
-});
-
-/** closing readline stream and exiting the app */
-const exitApp = async () => {
-	await rl.on("close", () => {
-		console.log(finalMsg);
-		process.exit(0);
+		}
 	});
 };
+
+main();
+
+/** closing readline stream and exiting the app */
+
+rl.on("close", () => {
+	console.log(finalMsg);
+	process.exit(0);
+});
 
 module.exports = { readingList, fetchData };
