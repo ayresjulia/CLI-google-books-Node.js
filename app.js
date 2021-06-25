@@ -12,6 +12,7 @@ const readline = require("readline");
 const axios = require("axios");
 const fs = require("fs");
 const process = require("process");
+const userText = require("./__helpers__/userText");
 
 /** readline interface setup for reading input stream in console */
 
@@ -23,19 +24,6 @@ const rl = readline.createInterface({
 /** Google Books Api base url */
 
 const BASE_URL = "https://www.googleapis.com/books/v1/";
-
-/** user text throughout the app */
-
-const q1 = "\nPLEASE, TYPE A SEARCH TERM FOR A BOOK: ";
-const q2 = "\nTO ADD TO YOUR READING LIST, ENTER BOOK ID: ";
-const q3 = "\nRETRIEVE YOUR READING LIST? y/n : ";
-const readList = "reading-list.txt";
-const bookNameError = "***OOPS. NO BOOKS AVAILABLE WITH THAT NAME.***";
-const idError = "***OOPS. BOOK ID IS INVALID.***";
-const finalMsg = "\nBYE BYE!!!";
-const noInput = "***OOPS, WE DO NOT RECOGNIZE YOUR SEARCH TERM. PLEASE, TRY AGAIN.***";
-const bookExists = "***OOPS, THIS BOOK IS ALREADY IN YOUR READING LIST.***";
-const newBook = "YOUR BOOK WAS SUCCESSFULLY SAVED.";
 
 /** read reading-list.txt and print it out. */
 
@@ -53,21 +41,21 @@ const readingList = (path) => {
 /** handle output: write to file if out given. */
 
 const handleOutput = (text, out) => {
-	fs.readFile(readList, "utf8", (err, data) => {
+	fs.readFile(userText.READ_LIST, "utf8", (err, data) => {
 		if (err) console.error(`Error reading ${path}: ${err}`);
-		// check for existing book in reading list, proceed if doesn't exist
+		// check for book dups
 		if (!data.includes(text)) {
 			fs.writeFile(out, `\n${text}`, { encoding: "utf8", flag: "a" }, (err) => {
 				if (err) {
 					console.log(err);
 					process.exit(1);
 				} else {
-					console.log(newBook);
+					console.log(userText.NEW_BOOK);
 					getReadingList();
 				}
 			});
 		} else {
-			console.error(bookExists);
+			console.error(userText.BOOK_EXISTS);
 			getReadingList();
 		}
 	});
@@ -76,14 +64,14 @@ const handleOutput = (text, out) => {
 /** retrieve reading list question and closing message. */
 
 const getReadingList = () => {
-	rl.question(q3, (answer) => {
+	rl.question(userText.Q3, (answer) => {
 		if (answer === "y") {
-			readingList(readList);
+			readingList(userText.READ_LIST);
 			setTimeout(() => {
 				rl.close();
 			}, 2000);
 		} else {
-			// if user doesn't want to retrieve readling list, app restarts without exiting
+			// restart the app
 			main();
 		}
 	});
@@ -95,31 +83,35 @@ const fetchData = async (query) => {
 	try {
 		let res = await axios.get(`${BASE_URL}volumes?&q=${query}`);
 		if (res.data.totalItems === 0) {
-			console.error(bookNameError);
+			console.error(userText.BOOK_NAME_ERR);
 			main();
 		} else {
 			return res;
 		}
 	} catch (err) {
-		// instead of a long err data, it will show status code and text
-		console.log("ERROR: ", err.response.status, err.response.statusText);
+		// filter error data for easier read
+		if (err.response) {
+			console.log("ERROR: ", err.response.status, err.response.statusText);
+		} else {
+			console.log("ERROR: ", err);
+		}
 	}
 };
 
 /** questions for the user */
 
 const main = () => {
-	rl.question(q1, async (term) => {
+	rl.question(userText.Q1, async (term) => {
 		let books = await fetchData(term);
-		// added peronalized message for empty query
+		// custom message for empty query
 		if (term === "" || term === " ") {
-			console.error(noInput);
+			console.error(userText.NO_INPUT);
 			main();
 		}
 
 		term.replace(/ /g, "+"); // for multi-word query string
 
-		// if user adds random characters and gets zero books response from API
+		// if term resp with zero books
 		if (books) {
 			if (books.data.totalItems !== 0) {
 				let booksNum = books.data.items.slice(0, 5);
@@ -135,21 +127,20 @@ const main = () => {
 					return `ID: ${id}, Author: ${author}, Title: ${title}, Publishing company: ${publisher}`;
 				});
 
-				rl.question(q2, (id) => {
+				rl.question(userText.Q2, (id) => {
 					// find target book by id and get a string of required values to save to Reading List
 					let bookStr = `ID: ${id},`;
 					let targetBookInfo = filteredBookInfo.find((book) => book.includes(bookStr));
 
 					if (targetBookInfo) {
-						handleOutput(targetBookInfo, readList);
+						handleOutput(targetBookInfo, userText.READ_LIST);
 					} else {
-						console.error(idError);
+						console.error(userText.ID_ERR);
 						main();
 					}
 				});
 			} else {
-				// if user search term resulted in zero books, app will show custom error msg and exit
-				console.error(finalMsg);
+				console.error(userText.FINAL_MSG);
 				rl.close();
 			}
 		}
@@ -159,10 +150,11 @@ const main = () => {
 main();
 
 /** closing readline stream and exiting the app */
-
-rl.on("close", () => {
-	console.log(finalMsg);
-	process.exit(0);
-});
+const exitApp = () => {
+	rl.on("close", async () => {
+		console.log(userText.FINAL_MSG);
+		await process.exit(0);
+	});
+};
 
 module.exports = { readingList, fetchData };

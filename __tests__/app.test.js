@@ -1,4 +1,4 @@
-const { readingList, fetchData } = require("./app");
+const { readingList, fetchData } = require("../app");
 const sinon = require("sinon");
 const fs = require("fs");
 const axios = require("axios");
@@ -14,6 +14,9 @@ describe("app.js readFile test with mock file", () => {
 });
 
 describe("mocking axios request to Google Books Api", () => {
+	afterEach(() => {
+		jest.resetAllMocks();
+	});
 	it("returns data from api", async () => {
 		let fetched = {
 			data: [ { id: 1, book: "test" }, { id: 2, book: "test" } ]
